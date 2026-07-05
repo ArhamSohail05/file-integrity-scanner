@@ -3,22 +3,33 @@ from pathlib import Path
 import json
 
 found_hashes = "hashes.json"
-dir_path = Path("/files")
+dir_path = Path("files/")
 
 def scan(file_path):
-    digest = hashlib.file_digest(file_path, "sha256")
+    with open(file_path, "rb") as f:
+        d = hashlib.file_digest(f, "sha256")
+        digest = d.hexdigest()
+
+    file_path = str(file_path)
 
     with open("hashes.json", "r") as hashes:
-        data = json.load(hashes)
+        try:
+            data = json.load(hashes)        
+        except json.JSONDecodeError:
+            print("File was empty or corrupted. Proceeding with empty file:")
+            data = {}
     
-    if data[file_path] and data[file_path] == digest:
+    if file_path in data and data[file_path] == digest:
         print(file_path + " not modified.")
-    elif not data[file_path]:
+    elif not file_path in data:
         data[file_path] = digest
         print("Added " + file_path + ".")
     else:
         data[file_path] = digest
         print(file_path + " was modified. Storing new file hash.")
+
+    with open("hashes.json", "w") as file:
+        json.dump(data, file, indent=4)
 
 
 def find_files(dir_path):
